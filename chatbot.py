@@ -27,7 +27,7 @@ PROMPT = PromptTemplate(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/semanic_search.yaml")
+    parser.add_argument("--config", default="configs/chatbot.yaml")
     args = parser.parse_args()
     with open(args.config, 'r') as file:
         config = yaml.safe_load(file)
@@ -63,9 +63,14 @@ if __name__ == "__main__":
         return answer, cm.format_context(context)
 
     with gr.Blocks() as demo:
+        file_output = gr.File()
+        upload_button = gr.UploadButton(
+            "Click to Upload Files",
+            file_count="multiple",
+        )
+        
         chatbot = gr.Chatbot()
         msg = gr.Textbox(label="Input")
-        context_button = gr.Button("Get Context Only")
         clear = gr.Button("Clear")
         context_box = gr.TextArea(label="Context")
 
@@ -77,17 +82,10 @@ if __name__ == "__main__":
             history[-1][1] = bot_message
             return history, context
 
-        file_output = gr.File()
-        upload_button = gr.UploadButton(
-            "Click to Upload Files",
-            file_count="multiple",
-        )
         upload_button.upload(cm.upload_file, upload_button, file_output)
 
         msg.submit(user, [msg, chatbot], [msg, chatbot], queue=False).then(
             bot, chatbot, [chatbot, context_box]
         )
-        context_button.click(cm.get_context, msg, context_box)
-        clear.click(lambda: [None, None], None, [chatbot, context_box], queue=False)
 
     demo.queue().launch(server_name="0.0.0.0")

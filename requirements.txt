@@ -1,5 +1,4 @@
 accelerate==0.21.0
-bitsandbytes==0.40.2
 chromadb==0.4.22
 datasets==2.16.1
 gradio==4.14.0
@@ -9,6 +8,5 @@ peft==0.4.0
 pypdf
 sentence_transformers==2.2.2
 torch==2.1.2
-torchaudio==2.1.2
 transformers==4.36.2
 trl==0.4.7

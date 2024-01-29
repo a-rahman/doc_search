@@ -5,7 +5,7 @@ text_splitter:
 embedding:
   device: cuda
   vectordb: doc_index
-  max_docs: 100
+  max_docs: 25
   model: sentence-transformers/all-mpnet-base-v2
 
 llm:

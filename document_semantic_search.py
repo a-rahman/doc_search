@@ -13,16 +13,16 @@ if __name__ == "__main__":
     cm = ContextManager(config)
 
     with gr.Blocks() as demo:
-        context_box = gr.TextArea(label="Context")
-        msg = gr.Textbox(label="Input")
-        clear = gr.Button("Clear")
-        sources_box = gr.TextArea(cm.get_sources, label="Sources")
-
         file_output = gr.Files()
         upload_button = gr.UploadButton(
             "Click to Upload Files",
             file_count="multiple",
         )
+        sources_box = gr.TextArea(cm.get_sources, label="Sources")
+        
+        context_box = gr.TextArea(label="Context")
+        msg = gr.Textbox(label="Input")
+        clear = gr.Button("Clear")
 
         upload_button.upload(cm.upload_file, upload_button, file_output).then(
             cm.get_sources, None, sources_box
