@@ -1,0 +1,12 @@
+text_splitter:
+  chunk_size: 1000
+  chunk_overlap: 20
+
+embedding:
+  device: cuda
+  vectordb: doc_index
+  max_docs: 100
+  model: sentence-transformers/all-mpnet-base-v2
+
+llm:
+  model: "mistralai/Mistral-7B-Instruct-v0.2"

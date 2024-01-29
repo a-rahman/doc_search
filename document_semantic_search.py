@@ -1,8 +1,16 @@
+import yaml
+import argparse
 import gradio as gr
 from rag import ContextManager
 
 if __name__ == "__main__":
-    cm = ContextManager()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="configs/semantic_search.yaml")
+    args = parser.parse_args()
+    with open(args.config, 'r') as file:
+        config = yaml.safe_load(file)
+    
+    cm = ContextManager(config)
 
     with gr.Blocks() as demo:
         context_box = gr.TextArea(label="Context")
@@ -22,4 +30,4 @@ if __name__ == "__main__":
         msg.submit(cm.get_context, msg, context_box, queue=False)
         clear.click(lambda: None, None, context_box, queue=False)
 
-    demo.queue().launch(server_name="0.0.0.0")
+    demo.queue().launch()

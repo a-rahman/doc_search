@@ -5,6 +5,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
 context_format = """
+### Context Number: {source_num}
 ### Source: {source} 
 ### Page:{page}
 {content}
@@ -12,20 +13,20 @@ context_format = """
 
 
 class ContextManager:
-    def __init__(self, config=None):
+    def __init__(self, config):
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=20,
+            chunk_size=config["text_splitter"]["chunk_size"],
+            chunk_overlap=config["text_splitter"]["chunk_overlap"],
             length_function=len,
             add_start_index=True,
         )
 
-        model_kwargs = {"device": "cuda"}
-        self.embeddings = HuggingFaceEmbeddings(model_kwargs=model_kwargs)
+        model_kwargs = {"device": config["embedding"]["device"]}
+        self.embeddings = HuggingFaceEmbeddings(model_name=config["embedding"]["model"], model_kwargs=model_kwargs)
         self.vectordb = Chroma(
-            persist_directory="doc_index", embedding_function=self.embeddings
+            persist_directory=config["embedding"]["vectordb"], embedding_function=self.embeddings
         )
-        self.retriever = self.vectordb.as_retriever(search_kwargs={"k": 25})
+        self.retriever = self.vectordb.as_retriever(search_kwargs={"k": config["embedding"]["max_docs"]})
 
     def get_sources(self):
         sources = map(
@@ -39,20 +40,21 @@ class ContextManager:
     def format_context(self, context):
         output = ""
         seen = set()
+        source_num = 0
         for doc in context:
             source = os.path.basename(doc.metadata["source"])
             page = doc.metadata["page"]
             content = doc.page_content
             if hash(content) not in seen:
+                source_num+=1
                 output += context_format.format(
-                    source=source, page=page, content=content
+                    source=source, page=page, content=content, source_num=source_num
                 )
                 seen.add(hash(content))
         return output
 
     def get_context(self, question):
         context = self.retriever.get_relevant_documents(question)
-        print(context)
         return self.format_context(context)
 
     def upload_file(self, files):

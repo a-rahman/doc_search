@@ -1,0 +1,9 @@
+text_splitter:
+  chunk_size: 1000
+  chunk_overlap: 20
+
+embedding:
+  device: cpu
+  vectordb: doc_index
+  max_docs: 100
+  model: sentence-transformers/all-mpnet-base-v2

@@ -1,3 +1,5 @@
+import yaml
+import argparse
 import torch
 import gradio as gr
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
@@ -24,15 +26,21 @@ PROMPT = PromptTemplate(
 
 
 if __name__ == "__main__":
-    cm = ContextManager()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="configs/semanic_search.yaml")
+    args = parser.parse_args()
+    with open(args.config, 'r') as file:
+        config = yaml.safe_load(file)
+    
+    cm = ContextManager(config)
 
     quantization_config = BitsAndBytesConfig(
         load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16
     )
 
-    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
+    tokenizer = AutoTokenizer.from_pretrained(config["llm"]["model"])
     model = AutoModelForCausalLM.from_pretrained(
-        "mistralai/Mistral-7B-Instruct-v0.2",
+        config["llm"]["model"],
         device_map="auto",
         quantization_config=quantization_config,
     )
@@ -46,7 +54,6 @@ if __name__ == "__main__":
 
     def ask(question):
         context = cm.retriever.get_relevant_documents(question)
-        print(context)
         answer = (
             chain(
                 {"input_documents": context, "question": question},
@@ -72,7 +79,7 @@ if __name__ == "__main__":
 
         file_output = gr.File()
         upload_button = gr.UploadButton(
-            "Click to Upload a File",
+            "Click to Upload Files",
             file_count="multiple",
         )
         upload_button.upload(cm.upload_file, upload_button, file_output)
