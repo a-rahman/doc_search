@@ -22,11 +22,21 @@ class ContextManager:
         )
 
         model_kwargs = {"device": config["embedding"]["device"]}
-        self.embeddings = HuggingFaceEmbeddings(model_name=config["embedding"]["model"], model_kwargs=model_kwargs)
-        self.vectordb = Chroma(
-            persist_directory=f"doc_index/{config['embedding']['vectordb']}", embedding_function=self.embeddings
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name=config["embedding"]["model"], model_kwargs=model_kwargs
         )
-        self.retriever = self.vectordb.as_retriever(search_kwargs={"k": config["embedding"]["max_docs"]})
+        self.k = config["embedding"]["max_docs"]
+        self.vectordb = Chroma(
+            persist_directory=f"doc_index/{config['embedding']['vectordb']}",
+            embedding_function=self.embeddings,
+        )
+        self.retriever = self.vectordb.as_retriever(search_kwargs={"k": self.k})
+
+    def change_db(self, db_name):
+        self.vectordb = Chroma(
+            persist_directory=f"doc_index/{db_name}", embedding_function=self.embeddings
+        )
+        self.retriever = self.vectordb.as_retriever(search_kwargs={"k": self.k})
 
     def get_sources(self):
         sources = map(
@@ -47,10 +57,10 @@ class ContextManager:
             page = doc.metadata["page"]
             content = doc.page_content
             if hash(content) not in seen:
-                rank_num+=1
+                rank_num += 1
                 matches.append([source, page, content, rank_num])
                 seen.add(hash(content))
-        matches.sort(key=lambda x:x[0])
+        matches.sort(key=lambda x: x[0])
         for match in matches:
             source, page, content, rank_num = match
             output += context_format.format(
@@ -62,14 +72,18 @@ class ContextManager:
         context = self.retriever.get_relevant_documents(question)
         return self.format_context(context)
 
-    def upload_file(self, files, db_name="default"):
+    def upload_file(self, files, db_name=None):
+        if db_name is None:
+            db_name = "default"
         file_paths = [file.name for file in files]
         for file_path in file_paths:
             loader = PyPDFLoader(file_path, extract_images=False)
             pages = loader.load_and_split()
             chunks = self.text_splitter.split_documents(pages)
             db = Chroma.from_documents(
-                chunks, embedding=self.embeddings, persist_directory=f"doc_index/{db_name}"
+                chunks,
+                embedding=self.embeddings,
+                persist_directory=f"doc_index/{db_name}",
             )
             db.persist()
         return file_paths

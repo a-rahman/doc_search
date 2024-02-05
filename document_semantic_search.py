@@ -5,6 +5,7 @@ import argparse
 import gradio as gr
 from rag import ContextManager
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/semantic_search.yaml")
@@ -13,6 +14,10 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     cm = ContextManager(config)
+
+    def dropdown_list():
+        dirs = glob.glob("doc_index/*")
+        return gr.Dropdown(choices=[os.path.basename(dir) for dir in dirs], interactive=True)
 
     with gr.Blocks() as demo:
         with gr.Row():
@@ -24,9 +29,10 @@ if __name__ == "__main__":
                 )
             with gr.Column(scale=1, min_width=600):
                 dirs = glob.glob("doc_index/*")
-                db = gr.Dropdown([os.path.basename(dir) for dir in dirs], label="Databases")
-                new_db = gr.Textbox(label="New Database")
-                add_db = gr.Button("Add Database")
+                db_choice = gr.Dropdown(
+                    [os.path.basename(dir) for dir in dirs], label="Databases", allow_custom_value=True
+                )
+                db_refresh = gr.Button("Refresh Database")
 
         sources_box = gr.TextArea(cm.get_sources, label="Sources")
 
@@ -34,10 +40,13 @@ if __name__ == "__main__":
         msg = gr.Textbox(label="Input")
         clear = gr.Button("Clear")
 
-        upload_button.upload(cm.upload_file, upload_button, file_output).then(
-            cm.get_sources, None, sources_box
-        )
+        upload_button.upload(
+            cm.upload_file, [upload_button, db_choice], file_output
+        ).then(cm.get_sources, None, sources_box)
         msg.submit(cm.get_context, msg, context_box, queue=False)
         clear.click(lambda: None, None, context_box, queue=False)
+        db_refresh.click(cm.change_db, db_choice, None).then(
+            cm.get_sources, None, sources_box
+        ).then(dropdown_list, None, db_choice)
 
     demo.queue().launch()
