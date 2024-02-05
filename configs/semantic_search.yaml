@@ -4,6 +4,6 @@ text_splitter:
 
 embedding:
   device: cpu
-  vectordb: doc_index
+  vectordb: default
   max_docs: 100
   model: sentence-transformers/all-mpnet-base-v2
